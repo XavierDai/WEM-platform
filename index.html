@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Show polygon information on click</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/protobufjs/6.11.2/protobuf.min.js"></script>
+
+
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .flex-container {
+      display: flex;
+      height: calc(100vh - 4.5rem);
+    }
+
+    .introduction-centered-title {
+      text-align: center;
+      font-size: 36px;
+      margin-top: 10px;
+    }
+
+    .introduction-content {
+      margin-left: 5%;
+    }
+
+    #map {
+      height: 100%;
+    }
+
+    .flex-item-map {
+      flex: 0 0 85%;
+      /* This sets the div to always occupy 90% width */
+    }
+
+    .flex-item-tools {
+      flex: 0 0 15%;
+      /* This sets the div to always occupy 10% width */
+
+    }
+
+    #menu {
+      background: #fff;
+
+      border-radius: 10px;
+      padding: 10px;
+
+      font-family: 'Open Sans', sans-serif;
+    }
+
+    #menu span{
+      font-size: 0.8rem;
+      margin-top: 10px;
+
+    }
+
+
+    #menu a {
+      font-size: 13px;
+      color: #404040;
+      display: block;
+      margin: 0;
+      padding: 5px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
+
+    #menu a:last-child {
+      border: none;
+    }
+
+    #menu a:hover {
+      background-color: #f8f8f8;
+      color: #404040;
+    }
+
+    #menu a.active {
+      background-color: #3887be;
+      color: #ffffff;
+    }
+
+    #menu a.active:hover {
+      background: #3074a4;
+    }
+
+    .legend-color {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+
+
+    }
+
+
+    .navi_content {
+      display: none;
+
+    }
+
+    #navbar a.selected {
+      background-color: #4286F4;
+      /* 选中的背景色 */
+      color: #fff;
+      /* 选中的文字颜色 */
+    }
+
+    .top-nav {
+      color: #fff;
+    }
+
+    .floating-weather-panel {
+      background-color: rgba(255, 255, 255, 0.7);
+      border: 1px solid #ccc;
+      padding: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      max-width: 15%;
+      position: absolute;
+      bottom: 3vh;
+      right: calc(15% + 10px);
+      z-index: 1;
+      display: none;
+
+
+    }
+
+    .floating-container {
+      position: absolute;
+      top: 5rem;
+      left: 10px;
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      z-index: 1;
+    }
+
+    .floating-date {
+      background-color: rgba(255, 255, 255, 0.8);
+      /* 半透明的白色背景 */
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      display: none;
+    }
+
+
+    .weather-icon {
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+    }
+
+    .phone {
+      position: fixed;
+      top: 6rem;
+      right: calc(18% + 10px);
+      width: 20%;
+      max-height: 60%;
+      border: 1px solid black;
+      border-radius: 20px;
+      background-color: white;
+      overflow-y: scroll;
+    }
+
+    .phone-header {
+      height: 8%;
+      padding: 10px 0px 0px 10px;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+      /* 使用rgba来设置透明度 */
+    }
+
+    .phone-content {
+      padding: 10px;
+      height: 90%;
+      overflow-y: scroll;
+    }
+
+
+    .phone-content::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .phone-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .phone-content::-webkit-scrollbar-thumb {
+      background-color: rgba(128, 128, 128, 0.3);
+
+      border-radius: 5px;
+      height: 50% !important;
+
+    }
+
+    .accordion-body {
+      font-size: 0.8em;
+    }
+
+    .accordion-button {
+      font-size: 0.5em;
+    }
+
+    .tags-content {
+      font-size: 0.8em;
+      color: #4286F4;
+      font-style: italic;
+    }
+
+    .phone-imgs {
+      width: 100%;
+      height: auto;
+    }
+
+    .accordion-header {
+      position: relative;
+    }
+
+    .delete-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #0726bf;
+      border: none;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      padding: 0;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      z-index: 10;
+      font-size: 10px;
+      color: white;
+      text-align: center;
+      line-height: 12px;
+    }
+
+    .delete-btn:hover {
+      background-color: #DF4F47;
+    }
+
+    .popup {
+      z-index: 10;
+      max-width: 15%;
+      max-height: 40%;
+      overflow: auto;
+    }
+
+    .rounded-rect {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 50px -25px black;
+    }
+
+    .flex-center {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .flex-center.left {
+      left: 0px;
+    }
+
+    .flex-center.right {
+      right: 0px;
+    }
+
+    .sidebar-content {
+      position: absolute;
+      width: 90%;
+
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 32px;
+      color: gray;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      width: 1.7em;
+      height: 1.3em;
+      overflow: visible;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .sidebar-toggle.left {
+      right: -2.1em;
+    }
+
+    .sidebar-toggle.right {
+      left: -1.9em;
+    }
+
+    .sidebar-toggle:hover {
+      color: #0aa1cf;
+      cursor: pointer;
+    }
+
+    .sidebar {
+      transition: transform 1s;
+      z-index: 1;
+      width: 220px;
+      height: 100%;
+    }
+
+    /*
+          The sidebar styling has them "expanded" by default, we use CSS transforms to push them offscreen
+          The toggleSidebar() function removes this class from the element in order to expand it.
+          */
+    .left.collapsed {
+      transform: translateX(-215px);
+    }
+
+    .right.collapsed {
+      transform: translateX(195px);
+    }
+
+
+    table {
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border: 1px solid grey;
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+
+</head>
+
+<body>
+  <style>
+    .mapboxgl-popup {
+      max-width: 400px;
+      font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    }
+  </style>
+  <div>
+    <header class="p-3 text-bg-dark">
+      <div>
+        <div class="d-flex  align-items-center justify-content-center justify-content-lg-start">
+          <ul class="nav  me-lg-auto mb-2 justify-content-center mb-md-0">
+            <li><a href="#" id="Introduction-Link" class="top-nav nav-link px-2">Introduction</a>
+            </li>
+            <li><a href="#" id="Preparedness-Link" class="top-nav nav-link px-2">Preparedness</a></li>
+            <li><a href="#" id="Response-Link" class="top-nav nav-link px-2">Response</a></li>
+            <li><a href="#" id="Recovery-Link" class="top-nav nav-link px-2">Recovery</a></li>
+            <li><a href="#" id="Satellite-Link" class="top-nav nav-link px-2">Satellite</a></li>
+          </ul>
+
+          <div class="text-end">
+            <button type="button" class="btn btn-outline-light me-2">Login</button>
+            <button type="button" class="btn btn-warning">Sign-up</button>
+          </div>
+        </div>
+      </div>
+    </header>
+  </div>
+
+  <div id="mapAndTools" class="flex-container" display="none;">
+
+
+    <!-- Map Here!!!!!!!!!!! -->
+    <div id="map" class="flex-item-map">
+      <div id="left" class="sidebar flex-center left collapsed">
+        <div class="sidebar-content rounded-rect flex-center">
+
+          <nav id="menu">
+            <h5 style="font-size:1.3rem;">Pick Layers:</h5>
+
+
+          </nav>
+
+          </br>
+
+
+          <div id="layers-button" class="sidebar-toggle rounded-rect left" onclick="toggleSidebar('left')">
+            <span style="font-size:1vw;">layers</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <div id="weather-panel" class="floating-weather-panel">
+      <div>
+        <p>
+          <img src="https://XavierDai.github.io/icons/temperature.png" alt="Temperature Icon" class="weather-icon">
+          Temperature: <span id="temperature"></span>
+        </p>
+        <p>
+          <img src="https://XavierDai.github.io/icons/humidity.png" alt="Humidity Icon" class="weather-icon">
+          Humidity: <span id="humidity"></span>
+        </p>
+        <p>
+          <img src="https://XavierDai.github.io/icons/pressure.png" alt="Pressure Icon" class="weather-icon">
+          Pressure: <span id="pressure"></span>
+        </p>
+        <p>
+          <img src="https://XavierDai.github.io/icons/wind_speed.png" alt="Wind Speed Icon" class="weather-icon">
+          Wind Speed: <span id="wind_speed"></span>
+        </p>
+        <p>
+          <img src="https://XavierDai.github.io/icons/clouds.png" alt="Clouds Icon" class="weather-icon">
+          Clouds: <span id="clouds"></span>
+        </p>
+      </div>
+    </div>
+
+
+    <div class="floating-container">
+      <div id="During_Fire_Demand-layer-select-date-panel" class="floating-date floating-select-date-panel">
+        <span>During Fire:</span>
+        </br>
+        <input type="range" id="dateSliderForDuringFire">
+        <div id="selectedDate"></div>
+      </div>
+
+      <div id="Post_Fire_Demand-layer-select-date-panel" class="floating-date floating-post-select-date-panel">
+        <span>Post Fire:</span>
+        </br>
+        <input type="range" id="dateSliderForPostFire">
+        <div id="selectedPostDate"></div>
+      </div>
+
+      <div id="Cal_fire_ongoing_select-panel" class="floating-date floating-post-select-date-panel">
+        <span>Ongoing/history Cal Fire :</span>
+        </br>
+        <form>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="active" id="activeFires" checked>
+            <label class="form-check-label" for="flexCheckDefault">
+              Ongoing
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="inactive" id="extinguishedFires" checked>
+            <label class="form-check-label" for="flexCheckChecked">
+              History (extinguished)
+            </label>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+
+
+    <div id="Social-Media-panel" class="floating-social-media-panel" style="display:none">
+      <div class="phone">
+        <div class="phone-header">
+          <h5>
+            What's happening
+          </h5>
+        </div>
+
+        <div class="phone-content">
+
+
+          <div class="accordion">
+
+          </div>
+
+          <span style="color:grey;font-style: italic;">
+            Click on message icons to show more content.
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+
+
+    <!-- Tools Bar Here!!!!!!!!!!! -->
+    <div id="tools-bar" class="flex-item-tools">
+      <div class="tools_display">
+
+
+
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+          <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+              <div id="navbar" class="navbar-nav">
+                <a class="nav-link" href="#" id="legend-link">Legend</a>
+                <a class="nav-link" href="#" id="tools-link">Tools</a>
+
+
+              </div>
+            </div>
+          </div>
+        </nav>
+
+
+
+        <div id="legend-content" class="navi_content" style="padding:0.5vw 0.5vw;">
+
+          <div id="During_Fire_Demand-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>During Fire Activity:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Demand:</h6>
+            <div>
+              <span class="legend-color" style="background-color: rgba(232, 224, 242, 0.6);"></span>
+              Very Low
+            </div>
+            <div><span class="legend-color" style="background-color: rgba(203, 180, 227, 0.6);"></span>
+              Low</div>
+            <div><span class="legend-color" style="background-color: rgba(166, 123, 205, 0.6);"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: rgba(128, 63, 178, 0.6);"></span>
+              High</div>
+            <div><span class="legend-color" style="background-color: rgba(92, 1, 148, 0.6);"></span>
+              Very High</div>
+
+          </div>
+
+          <div id="vehicle_positions-button-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Vehicle Position:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Point</h6>
+            <div>
+              <span class="legend-color"
+                style="background-color:#007cbf;height:0.8vw;width:0.8vw;border-radius:0.8vw;"></span>
+              Vehicle Location
+            </div>
+
+
+
+
+          <div id="Post_Fire_Demand-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Post Fire Activity:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Count Number</h6>
+            <div>
+              <span class="legend-color" style="background-color: rgba(227,245,255,0.7);"></span>
+              Very Low
+            </div>
+            <div><span class="legend-color" style="background-color: rgba(198,226,255,0.7);"></span>
+              Low</div>
+            <div><span class="legend-color" style="background-color: rgba(169,207,255,0.7);"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: rgba(140,188,255,0.7);"></span>
+              High</div>
+            <div><span class="legend-color" style="background-color: rgba(111,169,255,0.7);"></span>
+              Very High</div>
+
+
+          </div>
+
+
+          <div id="fhszs06_3_49-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Fire Hazard Severity Zones:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Hazard Level:</h6>
+            <div>
+              <span class="legend-color" style="background-color: #fdd5d5;"></span>
+              Moderate
+            </div>
+
+            <div><span class="legend-color" style="background-color: #fc7575;"></span>
+              High</div>
+
+
+            <div><span class="legend-color" style="background-color: #b00020;"></span>
+              Very High</div>
+
+
+          </div>
+
+
+
+          <div id="kin2019_Segment-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Debris Flow:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Segment Hazard Level</h6>
+            <div>
+              <span class="legend-color" style="background-color: #b3cde0;"></span>
+              Low
+            </div>
+
+            <div><span class="legend-color" style="background-color: #6399ba;"></span>
+              Moderate</div>
+
+            <div><span class="legend-color" style="background-color: #005b99;"></span>
+              High</div>
+
+          </div>
+
+          <div id="Annual_Loss-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Annual Loss:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Expected Cost</h6>
+            <div>
+              <span class="legend-color" style="background-color: #add8e680;"></span>
+              Very Low
+            </div>
+            <div><span class="legend-color" style="background-color: #87ceeb80;"></span>
+              Low</div>
+            <div><span class="legend-color" style="background-color: #4682b480;"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: #1e90ff80;"></span>
+              High</div>
+            <div><span class="legend-color" style="background-color: #00008b80;"></span>
+              Very High</div>
+
+          </div>
+
+
+
+
+
+          <div id="Social_Vulnerability-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Social Vulnerability：</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Value</h6>
+            <div>
+              <span class="legend-color" style="background-color: #ffcccc80;"></span>
+              Very Low
+            </div>
+            <div><span class="legend-color" style="background-color: #ff999980;"></span>
+              Low</div>
+            <div><span class="legend-color" style="background-color: #ff666680;"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: #ff333380;"></span>
+              High</div>
+            <div><span class="legend-color" style="background-color: #ff000080;"></span>
+              Very High</div>
+
+          </div>
+          <div id="Census_Resilience-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Census Risk:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Value</h6>
+            <div>
+
+              <span class="legend-color" style="background-color: #ffffb280;"></span>
+              Low
+            </div>
+            <div><span class="legend-color" style="background-color: #fecc5c80;"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: #fd8d3c80;"></span>
+              High</div>
+
+
+          </div>
+
+          <div id="kin2019_Basin-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Debris Flow:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Basin Hazard Level</h6>
+            <div>
+              <span class="legend-color" style="background-color: #fdd0a2;"></span>
+              Low
+            </div>
+            <div><span class="legend-color" style="background-color: #d94801;"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: #7f2704;"></span>
+              High</div>
+
+          </div>
+
+
+          <div id="route_line9-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Routine Line:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <div>
+              <span class="legend-color" style="height:3px;background-color: rgb(216, 191, 216);"></span>
+              Routine Line
+            </div>
+
+          </div>
+
+
+
+          <div id="shelter_location-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Shelter Location:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6> Represented by Icon</h6>
+            <div>
+              <span class="legend-color"
+                style="background-image:url('https://XavierDai.github.io/icons/shelter.png'); background-size: 100%;"></span>
+              Shelter
+            </div>
+
+          </div>
+
+          <div id="social_media-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Social Media:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6> Message Icon</h6>
+            <div>
+              <span class="legend-color"
+                style="background-image:url('https://XavierDai.github.io/icons/msgDangerous.png'); background-size: 100%;"></span>
+              Danger
+              </br>
+              <span class="legend-color"
+                style="background-image:url('https://XavierDai.github.io/icons/msgNormal.png'); background-size: 100%;"></span>
+              Normal
+            </div>
+
+          </div>
+
+          <div id="cal_fire-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>California Fire events:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6> Represented by Icon</h6>
+            <div>
+              <span class="legend-color"
+                style="background-image:url('https://XavierDai.github.io/icons/fire.png'); background-size: 100%;"></span>
+              Ongoing Fire
+              </br>
+              <span class="legend-color"
+                style="background-image:url('https://XavierDai.github.io/icons/efire.png'); background-size: 100%;"></span>
+              Extinguished Fire
+            </div>
+
+          </div>
+
+          <div id="stops-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Stops Position:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Point</h6>
+            <div>
+              <span class="legend-color"
+                style="background-color:rgb(128, 0, 128);height:0.8vw;width:0.8vw;border-radius:0.8vw;"></span>
+              Bus Stop
+            </div>
+
+          </div>
+
+          <div id="Risk_value-layer-legend" style="top: 10px; right: 10px;display:none;">
+            <h4>Risk Value:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <h6>Risk Score:</h6>
+            <div>
+              <span class="legend-color" style="background-color: #fee5d9;"></span>
+              Very Low
+            </div>
+            <div><span class="legend-color" style="background-color: #fcbba1;"></span>
+              Low</div>
+            <div><span class="legend-color" style="background-color: #fc9272;"></span>
+              Moderate</div>
+            <div><span class="legend-color" style="background-color: #fb6a4a;"></span>
+              High</div>
+            <div><span class="legend-color" style="background-color: #de2d26;"></span>
+              very High</div>
+
+
+          </div>
+
+          <div id="Boundary-layer-legend" style="top: 10px; right: 10px;">
+            <h4>Boundary:</h4>
+            <h6>Definition:</h6>
+            <span></span>
+            <div>
+              <span class="legend-color" style="height:3px;background-color: #808080;"></span>
+              Boundary line of Area
+            </div>
+
+
+          </div>
+
+        </div>
+
+        <div id="tools-content" class="navi_content">
+          <!-- Tools content goes here -->
+        </div>
+
+
+
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <div id="introduction" class="flex-container">
+    <h1 class="introduction-centered-title">Wildfire Emergency Management (WEM) Platform</h1>
+    <div class="introduction-content">
+      <h4>Term of use:</h4>
+
+      This platform and its contents herein, including all data, mapping, and analysis are copyright 2023 SERMOS
+      Lab,
+      University of Florida, all rights reserved.
+      </br>
+      </br>
+      <h4>Architecture:</h4>
+      <img src="https://XavierDai.github.io/imgs/architecture.png" alt="" style="width:40%;">
+
+      <h4>Details of Layers</h4>
+      <h5>Preparedness</h5>
+      <table>
+        <tr style="font-weight: bold;">
+          <td>Map Name</td>
+          <td>Description </td>
+          <td>Update Frequency</td>
+          <td>Source</td>
+        </tr>
+        <tr>
+          <td>Fire Hazard Severity Zones</td>
+          <td></td>
+          <td>Yearly</td>
+          <td>Sonoma County</td>
+        </tr>
+        <tr>
+          <td>Annual Loss</td>
+          <td>3,2</td>
+          <td>Yearly
+          </td>
+          <td>FEMA</td>
+        </tr>
+        <tr>
+          <td>Social Vulnerability</td>
+          <td>4,2</td>
+          <td>Unknown</td>
+          <td>FEMA</td>
+        </tr>
+        <tr>
+          <td>Census Resilience</td>
+          <td>5,2</td>
+          <td>Unknown</td>
+          <td>United States Census Bureau</td>
+        </tr>
+        <tr>
+          <td>Routine Line</td>
+          <td>5,2</td>
+          <td>Unknown</td>
+          <td>GTFS</td>
+        </tr>
+        <tr>
+          <td>Stops Position</td>
+          <td>5,2</td>
+          <td>Unknown</td>
+          <td>GTFS</td>
+        </tr>
+        <tr>
+          <td>Risk Index Value</td>
+          <td>5,2</td>
+          <td>Unknown</td>
+          <td>FEMA</td>
+        </tr>
+      </table>
+      </br>
+      <h5>Response</h5>
+      <table>
+        <tr style="font-weight: bold;">
+          <td>Map Name</td>
+          <td>Description </td>
+          <td>Update Frequency</td>
+          <td>Source</td>
+        </tr>
+        <tr>
+          <td>During Fire Activity</td>
+          <td>2,2</td>
+          <td>Hourly</td>
+          <td>GPS Data (Gravy Analytics)</td>
+        </tr>
+        <tr>
+          <td>Vehicle Position</td>
+          <td>3,2</td>
+          <td>Realtime</td>
+          <td>MTC</td>
+        </tr>
+        <tr>
+          <td>Weather data</td>
+          <td>4,2</td>
+          <td>Realtime</td>
+          <td>OpenWeather</td>
+        </tr>
+      </table>
+      </br>
+      <h5>Recovery</h5>
+      <table>
+        <tr style="font-weight: bold;">
+          <td>Map Name</td>
+          <td>Description </td>
+          <td>Update Frequency</td>
+          <td>Source</td>
+        </tr>
+        <tr>
+          <td>Post Fire Activity</td>
+          <td>2,2</td>
+          <td>Hourly</td>
+          <td>GPS Data (Gravy Analytics)</td>
+        </tr>
+        <tr>
+          <td>Shelter Location</td>
+          <td>3,2</td>
+          <td>Unknown</td>
+          <td>Sonoma County</td>
+        </tr>
+        <tr>
+          <td>Debris Flow (SegmentHazard Level)
+          </td>
+          <td>4,2</td>
+          <td>Unknown</td>
+          <td>USGS Landslide Hazards Program</td>
+        </tr>
+        <tr>
+          <td>Debris Flow (Basin Hazard Level)
+          </td>
+          <td>5,2</td>
+          <td>Unknown</td>
+          <td>USGS Landslide Hazards Program</td>
+        </tr>
+        <tr>
+          <td>Cal Fire History
+          </td>
+          <td>5,2</td>
+          <td>Realtime</td>
+          <td>Calfire</td>
+        </tr>
+      </table>
+      </br>
+      <h5>Social Media</h5>
+      <table>
+        <tr style="font-weight: bold;">
+          <td>Map Name</td>
+          <td>Description </td>
+          <td>Update Frequency</td>
+          <td>Source</td>
+        </tr>
+        <tr>
+          <td>Social Media</td>
+          <td>2,2</td>
+          <td>Realtime</td>
+          <td>Facebook</td>
+        </tr>
+      </table>
+
+
+
+      </br>
+    </div>
+
+
+
+
+  </div>
+
+
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <script>
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoieWlsb25nMTIzIiwiYSI6ImNsbjg5Z2NiczBqdHQybHB3b3J1NmNqZjUifQ.Gq1UBnyyFuUxuVx44IJwMA';
+    const OPENWEATHER_API_KEY = '2d5bac3df0a74651eee6337d8db1a33b';
+    var init = true;
+    var curNavi = "";
+
+
+    var first_time_part1 = true;
+    var first_time_part2 = true;
+
+
+
+    let duringFireDefaultDateString = "2019-10-24";
+    let postFireDefaultDateString = "2019-11-07";
+    var social_media_button_clicked = false;
+
+    // Create a new map.
+    const map = new mapboxgl.Map({
+      container: 'map',
+      // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-122.7141, 38.44],
+      zoom: 10
+    });
+    map.addControl(new mapboxgl.NavigationControl());
+    map.addControl(new mapboxgl.ScaleControl());
+    map.on('load', () => {
+      // Add a source for the state polygons.
+
+      map.loadImage('https://XavierDai.github.io/icons/shelter.png', function (error, image) {
+        if (error) throw error;
+        map.addImage('shelter-icon', image);
+      })
+      map.loadImage('https://XavierDai.github.io/icons/msgDangerous.png', function (error, image) {
+        if (error) throw error;
+        map.addImage('twitter-dangerous-icon', image);
+      })
+      map.loadImage('https://XavierDai.github.io/icons/msgNormal.png', function (error, image) {
+        if (error) throw error;
+        map.addImage('twitter-normal-icon', image);
+      })
+      map.loadImage('https://XavierDai.github.io/icons/fire.png', function (error, image) {
+        if (error) throw error;
+        map.addImage('fire-icon', image);
+      })
+      map.loadImage('https://XavierDai.github.io/icons/efire.png', function (error, image) {
+        if (error) throw error;
+        map.addImage('efire-icon', image);
+      })
+      // geojson files
+
+
+
+      map.addSource('Social_Vulnerability', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/Social_Vulnerability.geojson'
+      });
+      map.addSource('Annual_Loss', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/Annual_loss.geojson'
+      });
+      map.addSource('Census_Resilience', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/census_resilience.geojson'
+      });
+      map.addSource('During_Fire_Demand', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/during_fire_demand.geojson'
+      });
+      map.addSource('Post_Fire_Demand', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/post_fire_demand.geojson'
+      });
+
+      map.addSource('fhszs06_3_49', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/fhszs06_3_49.geojson'
+      });
+
+      map.addSource('kin2019_Basin', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/kin2019_Basin_DFPredictions_15min_24mmh.geojson'
+      });
+      map.addSource('kin2019_Segment', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/kin2019_Segment_DFPredictions_15min_24mmh.geojson'
+      });
+      map.addSource('route_line', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/route_line.geojson'
+      });
+      map.addSource('shelter_location', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/shelter_location.geojson'
+      });
+      map.addSource('stops', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/stops.geojson'
+      });
+      map.addSource('twitter', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/twitter.geojson'
+      });
+      map.addSource('Risk_value', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/Risk_value.geojson'
+      })
+
+      map.addSource('Boundary', {
+        'type': 'geojson',
+        'data': 'https://XavierDai.github.io/corrected_detailed_boundary.geojson'
+      })
+
+      fetch('https://test3-407023.uc.r.appspot.com/my/get-cal-fire/')
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          map.addSource('cal_fire', {
+            type: 'geojson',
+            data: data
+          });
+
+          map.addLayer({
+            'id': 'cal_fire-layer',
+            'type': 'symbol',
+            'source': 'cal_fire',
+            'layout': {
+              'visibility': 'none',
+              'icon-image': ['case', ['==', ['get', 'IsActive'], true], 'fire-icon', 'efire-icon'],
+              'icon-size': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                1, 0.01,
+                8, 0.05,
+                10, 0.08,
+                18, 0.7
+              ],
+              'icon-allow-overlap': true,
+            }
+          });
+        })
+        .catch(error => console.error('Error fetching the GeoJSON data:', error));
+
+
+
+      map.addLayer({
+        'id': 'outer-boundary',
+        'type': 'line',
+        'source': 'Boundary',
+        'layout': {},
+        'paint': {
+          'line-color': '#808080', // 线条颜色
+          'line-width': 2, // 线条宽度
+          'line-dasharray': [2, 1] // 虚线样式：每个虚线段的长度和间隔
+        }
+      });
+
+
+      map.addLayer({
+        'id': 'Annual_Loss-layer',
+        'type': 'fill',
+        'source': 'Annual_Loss',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'expected_a'],
+            60.303, '#add8e6',
+            70.214, '#87ceeb',
+            80.125, '#4682b4',
+            90.036, '#1e90ff',
+            99.947, '#00008b'
+          ],
+          'fill-opacity': 0.8
+        }
+      });
+
+
+      map.addLayer({
+        'id': 'Social_Vulnerability-layer',
+        'type': 'fill',
+        'source': 'Social_Vulnerability',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'social_vul'],
+            2.309, '#ffcccc',
+            26.055, '#ff9999',
+            49.802, '#ff6666',
+            73.548, '#ff3333',
+            97.294, '#ff0000'
+          ],
+          'fill-opacity': 0.8
+        }
+      });
+
+      map.addLayer({
+        'id': 'Census_Resilience-layer',
+        'type': 'fill',
+        'source': 'Census_Resilience',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'High_risk_'],
+            0.084, '#ffffb2', // Light yellow for low risk
+            (0.084 + 0.360) / 2, '#fecc5c', // Medium yellow for medium risk
+            0.360, '#fd8d3c'
+          ],
+          'fill-opacity': 0.8
+        }
+      });
+
+      map.addLayer({
+        'id': 'During_Fire_Demand-layer',
+        'type': 'fill',
+        'source': 'During_Fire_Demand',
+        'layout': {
+          'visibility': 'none'
+        },
+        'filter': ['==', ['get', 'date'], duringFireDefaultDateString],
+        'paint': {
+          'fill-color': [
+            "case",
+            ["<", ["get", "demand"], 0.178], "rgba(232, 224, 242, 0.8)", // Color for count < 8
+            ["<", ["get", "demand"], 174.175], "rgba(203, 180, 227, 0.8)", // Color for 8 <= count < 27
+            ["<", ["get", "demand"], 348.171], "rgba(166, 123, 205, 0.8)", // Color for 27 <= count < 46.9
+            ["<", ["get", "demand"], 522.168], "rgba(128, 63, 178, 0.8)", // Color for 46.9 <= count < 66
+            ["<", ["get", "demand"], 696.164], "rgba(92, 1, 148, 0.8)", // Color for 66 <= count < 86
+            "rgba(58, 0, 115, 0.8)" // Default color for count >= 86
+          ],
+          'fill-outline-color': '#9c76a0'
+        }
+      });
+
+      map.addLayer({
+        'id': 'Post_Fire_Demand-layer',
+        'type': 'fill',
+        'source': 'Post_Fire_Demand',
+        'layout': {
+          'visibility': 'none'
+        },
+        'filter': ['==', ['get', 'date'], postFireDefaultDateString],
+        'paint': {
+          'fill-color': [
+            "case",
+            ["<", ["get", "demand"], 9.459], "rgba(227,245,255,0.8) ",
+            ["<", ["get", "demand"], 137.596], "rgba(198,226,255,0.8)",
+            ["<", ["get", "demand"], 265.732], "rgba(169,207,255,0.8) ",
+            ["<", ["get", "demand"], 393.869], "rgba(140,188,255,0.8) ",
+            ["<", ["get", "demand"], 522.005], "rgba(111,169,255,0.8)",
+            "rgba(82,150,255,0.8) "
+          ],
+          'fill-outline-color': 'rgba(60,60,60,0.6)'
+        }
+      });
+
+
+
+      map.addLayer({
+        'id': 'fhszs06_3_49-layer',
+        'type': 'fill',
+        'source': 'fhszs06_3_49',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'HAZ_CODE'],
+            1, '#fdd5d5',
+            1.5, '#fca5a5',
+            2, '#fc7575',
+            2.5, '#e63946',
+            3, '#b00020'
+          ],
+          'fill-opacity': 0.6,
+          'fill-outline-color': '#8b0000'
+        }
+      });
+
+      map.addLayer({
+        'id': 'kin2019_Basin-layer',
+        'type': 'fill',
+        'source': 'kin2019_Basin',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'CombHazCl'],
+            1, '#fdd0a2',
+            1.5, '#f16913',
+            2, '#d94801',
+            2.5, '#a63603',
+            3, '#7f2704'
+          ],
+          'fill-opacity': 0.6,
+          'fill-outline-color': '#333333'
+        }
+      });
+
+
+      map.addLayer({
+        'id': 'kin2019_Segment-layer',
+        'type': 'fill',
+        'source': 'kin2019_Segment',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'CombHazCl'],
+            1, '#b3cde0',
+            1.5, '#8bbbd5',
+            2, '#6399ba',
+            2.5, '#3a7ca5',
+            3, '#005b99'
+          ],
+          'fill-opacity': 0.7,
+          'fill-outline-color': '#333333'
+        }
+
+      });
+
+      map.addLayer({
+        'id': 'route_line9-layer',
+        'type': 'line',
+        'source': 'route_line',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'line-color': 'rgb(216, 191, 216)',
+          'line-width': 2
+        }
+      });
+
+      map.addLayer({
+        'id': 'shelter_location-layer',
+        'type': 'symbol',
+        'source': 'shelter_location',
+        'layout': {
+          'visibility': 'none',
+          'icon-image': 'shelter-icon',
+          'icon-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 0.08,
+            18, 0.5
+          ]
+        }
+      });
+
+      map.addLayer({
+        'id': 'stops-layer',
+        'type': 'circle',
+        'source': 'stops',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'circle-radius': 3,
+          'circle-color': 'rgb(128, 0, 128)'
+        }
+      });
+
+      map.addLayer({
+        'id': 'social_media-button',
+        'type': 'symbol',
+        'source': 'twitter',
+        'layout': {
+          'visibility': 'none',
+          'icon-image': [
+            'match',
+            ['get', 'class'],
+            'dangerous', 'twitter-dangerous-icon',
+            'normal', 'twitter-normal-icon',
+            'twitter-normal-icon'
+          ],
+          'icon-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 0.08,
+            18, 0.5
+          ]
+        }
+      });
+
+      map.addLayer({
+        'id': 'Risk_value-layer',
+        'type': 'fill',
+        'source': 'Risk_value',
+        'layout': {
+          'visibility': 'none'
+        },
+        'paint': {
+          'fill-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'risk_score'],
+            54.51, '#fee5d9',
+            78.46, '#fcbba1',
+            85.19, '#fc9272',
+            93.04, '#fb6a4a',
+            97.87, '#de2d26'
+          ],
+          'fill-opacity': 0.8,
+          'fill-outline-color': '#a9a9a9'
+        }
+      });
+
+
+
+
+      let prettyName = {
+        "During_Fire_Demand-layer": "During Fire Activity [GPS Data (Gravy Analytics)]",
+        "Post_Fire_Demand-layer": "Post Fire Activity [GPS Data (Gravy Analytics)]",
+        "Risk_value-layer": "Risk Value [FEMA]",
+        "Social_Vulnerability-layer": "Social Vulnerability [FEMA]",
+        "Census_Resilience-layer": "Census Risk [US Census]",
+        "Annual_Loss-layer": "Annual Loss [FEMA]",
+        "fhszs06_3_49-layer": "Fire Hazard Severity Zones [Sonoma County]",
+        "kin2019_Basin-layer": "Debris Flow (Basin Hazard Level) [USGS]",
+        "kin2019_Segment-layer": "Debris Flow (Segment Hazard Level) [USGS]",
+        "cal_fire-layer": "Cal Fire History [Calfire]",
+        'route_line9-layer': "Route Line [GTFS]",
+        'stops-layer': "Stops [GTFS]",
+        'shelter_location-layer': "Shelter Location [Sonoma County]",
+        'vehicle_positions-button': "Bus Position [MTC]",
+        'weather_data-button': "Weather Data [OpenWeather]",
+        'social_media-button': "Social Media [Facebook]",
+      };
+
+      const activeLayers = [];
+      const activeLayerPropertiesSet = new Set();
+
+      const toggleablePreparenessLayerIdsPart1 = ['Annual_Loss-layer', 'Social_Vulnerability-layer', 'Census_Resilience-layer',
+        'Risk_value-layer'];
+
+      const toggleablePreparenessLayerIdsPart2 = ['fhszs06_3_49-layer', 'route_line9-layer', 'stops-layer', 'shelter_location-layer', 'cal_fire-layer'];
+
+      const toggleableResponseButtonIds = ['During_Fire_Demand-layer', 'vehicle_positions-button', 'weather_data-button', 'social_media-button'];
+
+      const toggleableRecoveryLayerIds = ['Post_Fire_Demand-layer', 'kin2019_Segment-layer', 'kin2019_Basin-layer'];
+
+
+      map.on('idle', () => {
+
+        // Enumerate ids of the layers.
+
+        // Set up the corresponding toggle button for each layer.
+
+
+        for (const id of toggleablePreparenessLayerIdsPart1) {
+          const layers = document.getElementById('menu');
+          // Skip layers that already have a button set up.
+          if (first_time_part1) {
+            const title1 = document.createElement('span');
+            title1.textContent = "Resilience";
+            title1.id = 'title1';
+            title1.className = 'Preparedness layer-button';
+            
+            layers.appendChild(title1);
+            first_time_part1 = false;
+          }
+          if (document.getElementById(id)) {
+            continue;
+          }
+
+          // Create a link.
+          const link = document.createElement('a');
+          link.id = id;
+          link.href = '#';
+          if (id in prettyName) {
+            link.textContent = prettyName[id];
+          } else {
+            link.textContent = replaceWithSpace(id.split('-')[0]);
+          }
+          link.className = 'Preparedness layer-button';
+
+
+          // Show or hide layer when the toggle is clicked.
+          link.onclick = function (e) {
+            let relatedLegend = document.getElementById(id + '-legend');
+            let relatedSelectDatePanel = document.getElementById(id + '-select-date-panel');
+            const clickedLayer = this.id;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const visibility = map.getLayoutProperty(
+              clickedLayer,
+              'visibility'
+            );
+
+            // Toggle layer visibility by changing the layout object's visibility property.
+            if (visibility === 'visible') {
+              map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+              this.className = 'Preparedness layer-button';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'none';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'none';
+              }
+
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+
+
+            } else {
+              this.className = 'Preparedness layer-button active';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'block';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'block';
+              }
+              map.setLayoutProperty(
+                clickedLayer,
+                'visibility',
+                'visible'
+              );
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+            }
+
+
+          };
+
+
+          layers.appendChild(link);
+        }
+
+
+
+        for (const id of toggleablePreparenessLayerIdsPart2) {
+          const layers = document.getElementById('menu');
+          // Skip layers that already have a button set up.
+          if (first_time_part2) {
+            const title2 = document.createElement('span');
+            title2.id = 'title2';
+            title2.textContent = "General";
+            title2.className = 'Preparedness layer-button';
+            layers.appendChild(title2)
+            first_time_part2 = false;
+
+          }
+          if (document.getElementById(id)) {
+            continue;
+          }
+
+          // Create a link.
+          const link = document.createElement('a');
+          link.id = id;
+          link.href = '#';
+          if (id in prettyName) {
+            link.textContent = prettyName[id];
+          } else {
+            link.textContent = replaceWithSpace(id.split('-')[0]);
+          }
+          link.className = 'Preparedness layer-button';
+
+
+          // Show or hide layer when the toggle is clicked.
+          link.onclick = function (e) {
+            let relatedLegend = document.getElementById(id + '-legend');
+            let relatedSelectDatePanel = document.getElementById(id + '-select-date-panel');
+            const clickedLayer = this.id;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const visibility = map.getLayoutProperty(
+              clickedLayer,
+              'visibility'
+            );
+
+            // Toggle layer visibility by changing the layout object's visibility property.
+            if (visibility === 'visible') {
+              map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+              this.className = 'Preparedness layer-button';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'none';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'none';
+              }
+
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+
+
+            } else {
+              this.className = 'Preparedness layer-button active';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'block';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'block';
+              }
+              map.setLayoutProperty(
+                clickedLayer,
+                'visibility',
+                'visible'
+              );
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+            }
+
+
+          };
+
+
+          layers.appendChild(link);
+        }
+
+
+        for (const id of toggleableRecoveryLayerIds) {
+          // Skip layers that already have a button set up.
+          if (document.getElementById(id)) {
+            continue;
+          }
+
+          let selectFirePanel = document.getElementById('Cal_fire_ongoing_select-panel');
+
+
+          // Create a link.
+          const link = document.createElement('a');
+          link.id = id;
+          link.href = '#';
+          if (id in prettyName) {
+            link.textContent = prettyName[id];
+          } else {
+            link.textContent = replaceWithSpace(id.split('-')[0]);
+          }
+          link.className = 'Recovery layer-button';
+
+
+          // Show or hide layer when the toggle is clicked.
+          link.onclick = function (e) {
+            let relatedLegend = document.getElementById(id + '-legend');
+            let relatedSelectDatePanel = document.getElementById(id + '-select-date-panel');
+            const clickedLayer = this.id;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const visibility = map.getLayoutProperty(
+              clickedLayer,
+              'visibility'
+            );
+
+            // Toggle layer visibility by changing the layout object's visibility property.
+            if (visibility === 'visible') {
+              map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+              this.className = 'Recovery layer-button';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'none';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'none';
+              }
+              if (id == 'cal_fire-layer') {
+                if (selectFirePanel) {
+                  selectFirePanel.style.display = 'none';
+                }
+              }
+
+
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+
+            } else {
+              this.className = 'Recovery layer-button active';
+              if (relatedLegend) {
+                relatedLegend.style.display = 'block';
+              }
+              if (relatedSelectDatePanel) {
+                relatedSelectDatePanel.style.display = 'block';
+              }
+              if (id == 'cal_fire-layer') {
+                if (selectFirePanel) {
+                  selectFirePanel.style.display = 'block';
+                }
+              }
+              map.setLayoutProperty(
+                clickedLayer,
+                'visibility',
+                'visible'
+              );
+              var layer = map.getLayer(clickedLayer);
+              var sourceId = layer.source;
+              var source = map.getSource(sourceId);
+              if (!source) {
+                console.error("Source not found for layer:", clickedLayer);
+                return;
+              }
+
+
+            }
+
+
+          };
+
+          const layers = document.getElementById('menu');
+          layers.appendChild(link);
+        }
+
+
+        let vehicle_positions_intervalId = null;
+        let weather_data_intervalId = null;
+
+        for (const id of toggleableResponseButtonIds) {
+          // Skip layers that already have a button set up.
+          if (document.getElementById(id)) {
+            continue;
+          }
+
+          // Create a link.
+          const link = document.createElement('a');
+          link.id = id;
+          link.href = '#';
+          if (id in prettyName) {
+            link.textContent = prettyName[id];
+          } else {
+            link.textContent = replaceWithSpace(id.split('-')[0]);
+          }
+          link.className = 'Response layer-button';
+
+
+          // Show or hide layer when the toggle is clicked.
+          link.onclick = function (e) {
+            let relatedLegend = document.getElementById(id + '-legend');
+            let relatedSelectDatePanel = document.getElementById(id + '-select-date-panel');
+            const clickedLayer = this.id;
+            e.preventDefault();
+            e.stopPropagation();
+
+
+
+            switch (id) {
+              case 'vehicle_positions-button':
+                if (vehicle_positions_intervalId) {
+                  clearInterval(vehicle_positions_intervalId);
+                  vehicle_positions_intervalId = null;
+                  this.className = 'Response layer-button';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'none';
+                  }
+                  map.setLayoutProperty('vehicles', 'visibility', 'none');
+
+
+                } else {
+                  addVehiclePositions();
+                  vehicle_positions_intervalId = setInterval(addVehiclePositions, 10000);
+                  this.className = 'Response layer-button active';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'block';
+                  }
+                }
+                break;
+              case 'weather_data-button':
+                if (weather_data_intervalId) {
+                  clearInterval(weather_data_intervalId);
+                  weather_data_intervalId = null;
+                  this.className = 'Response layer-button';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'none';
+                  }
+                  document.getElementById('weather-panel').style.display = 'none';
+                } else {
+                  fetchWeatherData();
+                  weather_data_intervalId = setInterval(fetchWeatherData, 300000);
+                  this.className = 'Response layer-button active';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'block';
+                  }
+
+                  document.getElementById('weather-panel').style.display = 'block';
+                }
+                break;
+              case 'social_media-button':
+                let relatedLegend = document.getElementById('social_media-layer-legend');
+
+
+                const social_visibility = map.getLayoutProperty(
+                  "social_media-button",
+                  'visibility'
+                );
+                if (social_media_button_clicked) {
+                  document.getElementById('Social-Media-panel').style.display = 'none';
+                  social_media_button_clicked = false;
+                  this.className = 'Response layer-button';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'none';
+                  }
+                } else {
+                  document.getElementById('Social-Media-panel').style.display = 'block';
+                  social_media_button_clicked = true;
+                  this.className = 'Response layer-button active';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'block';
+                  }
+                }
+
+
+                if (social_visibility === "visible") {
+                  map.setLayoutProperty(social_media_id, 'visibility', 'none');
+                } else {
+                  map.setLayoutProperty(
+                    "social_media-button",
+                    'visibility',
+                    'visible'
+                  );
+                }
+                break;
+              default:
+                const visibility = map.getLayoutProperty(
+                  clickedLayer,
+                  'visibility'
+                );
+
+
+                if (visibility === 'visible') {
+                  map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                  this.className = 'Response layer-button';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'none';
+                  }
+                  if (relatedSelectDatePanel) {
+                    relatedSelectDatePanel.style.display = 'none';
+                  }
+
+                  var layer = map.getLayer(clickedLayer);
+                  var sourceId = layer.source;
+                  var source = map.getSource(sourceId);
+                  if (!source) {
+                    console.error("Source not found for layer:", clickedLayer);
+                    return;
+                  }
+
+
+
+                } else {
+                  this.className = 'Response layer-button active';
+                  if (relatedLegend) {
+                    relatedLegend.style.display = 'block';
+                  }
+                  if (relatedSelectDatePanel) {
+                    relatedSelectDatePanel.style.display = 'block';
+                  }
+                  map.setLayoutProperty(
+                    clickedLayer,
+                    'visibility',
+                    'visible'
+                  );
+                  var layer = map.getLayer(clickedLayer);
+                  var sourceId = layer.source;
+                  var source = map.getSource(sourceId);
+                  if (!source) {
+                    console.error("Source not found for layer:", clickedLayer);
+                    return;
+                  }
+
+
+                }
+                break;
+
+
+
+
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+          };
+          const layers = document.getElementById('menu');
+          layers.appendChild(link);
+
+        }
+
+
+        document.getElementById("layers-button").style.display = "flex";
+
+
+
+
+      });
+
+      // When a click event occurs on a feature in the states layer,
+      // open a popup at the location of the click, with description
+      // HTML from the click event's properties.
+
+      let combinedArray = (toggleablePreparenessLayerIdsPart1.concat(toggleableRecoveryLayerIds)).concat(toggleableResponseButtonIds).concat(toggleablePreparenessLayerIdsPart2);
+      for (const id of combinedArray) {
+        map.on('click', id, (e) => {
+          var info = '<h5>' + replaceWithSpace(id) + '</h5>';
+          for (var key in e.features[0].properties) {
+            info += key + ": " + e.features[0].properties[key] + "<br>";
+          }
+          new mapboxgl.Popup({ className: 'popup' })
+            .setLngLat(e.lngLat)
+            .setHTML(info)
+            .addTo(map);
+        });
+
+        // Change the cursor to a pointer when
+        // the mouse is over the states layer.
+        map.on('mouseenter', id, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change the cursor back to a pointer
+        // when it leaves the states layer.
+        map.on('mouseleave', id, () => {
+          map.getCanvas().style.cursor = '';
+        });
+      }
+
+
+      map.on('click', 'social_media-button', function (e) {
+        // 获取点击点的数据
+        var data = e.features[0].properties;
+
+        // 使用数据创建新的accordion-item
+        var newItem = `
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#${data.Aid}" aria-expanded="true"
+                    aria-controls="${data.Aid}">
+                    ${data.Name}
+                </button>
+                <button class="btn delete-btn" type="button">-</button>
+            </h2>
+            <div id="${data.Aid}" class="accordion-collapse collapse show">
+                <div class="accordion-body">
+                    ${data.Content}
+                    </br>
+                    <span class="tags-content">
+                        ${data.Tag}
+                    </span>
+                    <img class="phone-imgs" src="${data.URL}" alt="">
+                </div>
+            </div>
+        </div>
+    `;
+
+        // 将新创建的accordion-item添加到<div class="accordion"></div>中
+        document.querySelector('.accordion').innerHTML += newItem;
+      });
+      map.on('mouseenter', 'social_media-button', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      // Change the cursor back to a pointer
+      // when it leaves the states layer.
+      map.on('mouseleave', 'social_media-button', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      document.querySelector('.accordion').addEventListener('click', function (e) {
+        if (e.target.classList.contains('delete-btn')) {
+          // 如果点击了删除按钮，删除对应的accordion-item
+          e.target.closest('.accordion-item').remove();
+        }
+      });
+
+
+      document.getElementById('Cal_fire_ongoing_select-panel').addEventListener('change', function (event) {
+
+        var activeChecked = document.getElementById('activeFires').checked;
+        var extinguishedChecked = document.getElementById('extinguishedFires').checked;
+
+        console.log(activeChecked, extinguishedChecked)
+        if (activeChecked && extinguishedChecked) {
+          map.setFilter('cal_fire-layer', null);
+
+
+        } else if (activeChecked && !extinguishedChecked) {
+          map.setFilter('cal_fire-layer', ['==', ['get', 'IsActive'], true])
+        } else if (!activeChecked && extinguishedChecked) {
+          map.setFilter('cal_fire-layer', ['==', ['get', 'IsActive'], false])
+        }
+
+
+      });
+
+
+      let startDate = new Date("2019-10-24").getTime();
+      let endDate = new Date("2019-11-06").getTime();
+      duringFireDefaultDate = new Date(duringFireDefaultDateString).getTime();
+
+      let sliderForDuringFire = document.getElementById('dateSliderForDuringFire');
+      let selectedDateDiv = document.getElementById('selectedDate');
+
+      sliderForDuringFire.min = startDate;
+      sliderForDuringFire.max = endDate;
+      sliderForDuringFire.value = duringFireDefaultDate;
+
+      // 初始化显示日期
+      selectedDateDiv.innerText = new Date(parseInt(sliderForDuringFire.value)).toISOString().slice(0, 10);
+
+
+
+      sliderForDuringFire.addEventListener('input', function (e) {
+        let timestamp = parseInt(e.target.value);
+        let date = new Date(timestamp);
+        selectedDateDiv.innerText = date.toISOString().slice(0, 10);
+        updateDuringFire(date.toISOString().slice(0, 10));
+      });
+
+
+
+
+      let startPostDate = new Date("2019-11-07").getTime();
+      let endPostDate = new Date("2019-11-13").getTime();
+      postFireDefaultDate = new Date(postFireDefaultDateString).getTime();
+
+      let sliderForPostFire = document.getElementById('dateSliderForPostFire');
+      let selectedPostDateDiv = document.getElementById('selectedPostDate');
+
+      sliderForPostFire.min = startPostDate;
+      sliderForPostFire.max = endPostDate;
+      sliderForPostFire.value = postFireDefaultDate;
+
+      // 初始化显示日期
+      selectedPostDateDiv.innerText = new Date(parseInt(sliderForPostFire.value)).toISOString().slice(0, 10);
+      sliderForPostFire.addEventListener('input', function (e) {
+        let timestamp = parseInt(e.target.value);
+        let date = new Date(timestamp);
+        selectedPostDateDiv.innerText = date.toISOString().slice(0, 10);
+        updatePostFire(date.toISOString().slice(0, 10));
+      });
+
+      function updateDuringFire(date) {
+        // 使用 Mapbox 的 setFilter 方法过滤数据
+        map.setFilter('During_Fire_Demand-layer', ['==', ['get', 'date'], date]);
+      }
+
+      function updatePostFire(date) {
+        map.setFilter('Post_Fire_Demand-layer', ['==', ['get', 'date'], date]);
+      }
+
+
+    });
+
+
+
+    document.getElementById("Introduction-Link").addEventListener("click", function () {
+      topNavSetSelected(this);
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+      var activeLayerButtions = document.querySelectorAll(".Introduction");
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+    });
+
+
+    topNavSetSelected(document.getElementById("Introduction-Link"));
+    var allLayerButtons = document.querySelectorAll(".layer-button");
+    allLayerButtons.forEach(function (button) {
+      button.style = "display: none;"
+    });
+
+    var activeLayerButtions = document.querySelectorAll(".Introduction");
+    activeLayerButtions.forEach(function (button) {
+      button.style = "display: block;"
+    });
+
+
+
+    document.getElementById("Preparedness-Link").addEventListener("click", function () {
+      topNavSetSelected(this);
+      curNavi = "Preparedness";
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+      var activeLayerButtions = document.querySelectorAll(".Preparedness");
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+
+
+
+    });
+
+
+    
+    document.getElementById("Response-Link").addEventListener("click", function () {
+      topNavSetSelected(this);
+      curNavi = "Response";
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+      var activeLayerButtions = document.querySelectorAll(".Response");
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+
+
+
+    });
+
+    document.getElementById("Recovery-Link").addEventListener("click", function () {
+
+      topNavSetSelected(this);
+      curNavi = "Recovery";
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+      var activeLayerButtions = document.querySelectorAll(".Recovery");
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+
+
+    });
+
+
+
+    document.getElementById("Satellite-Link").addEventListener("click", function () {
+
+      topNavSetSelected(this);
+      curNavi = "Satellite";
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+
+      var activeLayerButtions = document.querySelectorAll(".Satellite");
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+
+
+
+
+
+    });
+
+
+
+    function fetchWeatherData() {
+      fetch('https://test3-407023.uc.r.appspot.com/my/get_weather/').then(response => response.json())
+        .then(data => {
+          document.getElementById('temperature').innerText = `${data.temperature}°C`;
+          document.getElementById('humidity').innerText = `${data.humidity}%`;
+          document.getElementById('pressure').innerText = `${data.pressure} hPa`;
+          document.getElementById('wind_speed').innerText = `${data.wind_speed} m/s`;
+          document.getElementById('clouds').innerText = `${data.clouds}%`;
+        });
+    }
+
+    function topNavSetSelected(selectedLink) {
+      var navLinks = document.querySelectorAll(".top-nav");
+      navLinks.forEach(function (link) {
+        link.style = "color: #fff;"
+      });
+
+      selectedLink.style = "color: #007BFF;"
+      if (selectedLink.id == "Introduction-Link") {
+        document.getElementById("introduction").style.display = "block";
+        document.getElementById("mapAndTools").style.display = "none";
+      } else {
+        document.getElementById("introduction").style.display = "none";
+        document.getElementById("mapAndTools").style.display = "flex";
+      }
+
+    }
+
+
+    function toggleSidebar(id) {
+      const elem = document.getElementById(id);
+      // Add or remove the 'collapsed' CSS class from the sidebar element.
+      // Returns boolean "true" or "false" whether 'collapsed' is in the class list.
+      const collapsed = elem.classList.toggle('collapsed');
+      const padding = {};
+      // 'id' is 'right' or 'left'. When run at start, this object looks like: '{left: 300}';
+      padding[id] = collapsed ? 0 : 300; // 0 if collapsed, 300 px if not. This matches the width of the sidebars in the .sidebar CSS class.
+      // Use `map.easeTo()` with a padding option to adjust the map's center accounting for the position of sidebars.
+      map.easeTo({
+        padding: padding,
+        duration: 1000 // In ms. This matches the CSS transition duration property.
+      });
+
+      var allLayerButtons = document.querySelectorAll(".layer-button");
+      allLayerButtons.forEach(function (button) {
+        button.style = "display: none;"
+      });
+
+      var activeLayerButtions = document.querySelectorAll("." + curNavi);
+      activeLayerButtions.forEach(function (button) {
+        button.style = "display: block;"
+      });
+    }
+
+    document.getElementById("legend-link").addEventListener("click", function () {
+      toggleContent("legend-content");
+      setSelected(this);
+    });
+
+    toggleContent("legend-content");
+    setSelected(document.getElementById("legend-link"));
+
+    document.getElementById("tools-link").addEventListener("click", function () {
+      toggleContent("tools-content");
+      setSelected(this);
+    });
+
+    function toggleContent(contentId) {
+      document.getElementById("legend-content").style.display = "none";
+      document.getElementById("tools-content").style.display = "none";
+
+      document.getElementById(contentId).style.display = "block";
+    }
+
+    function setSelected(selectedLink) {
+      var navLinks = document.querySelectorAll("#navbar a");
+      navLinks.forEach(function (link) {
+        link.classList.remove("selected");
+      });
+
+      selectedLink.classList.add("selected");
+    }
+
+
+
+
+    function replaceWithSpace(str) {
+      return str.replace(/[-_]/g, ' ');
+    }
+
+    var polygon
+
+    fetch('https://XavierDai.github.io/corrected_detailed_boundary.geojson')
+      .then(response => response.json()) // 解析JSON数据
+      .then(data => {
+        // 从GeoJSON数据中提取坐标
+        var coordinates = data.features[0].geometry.coordinates;
+
+        // 创建Turf.js多边形
+        polygon = turf.polygon(coordinates);
+
+
+
+      })
+      .catch(error => {
+        console.error("获取或解析数据时出现错误:", error);
+      });
+
+
+
+
+    async function addVehiclePositions() {
+      try {
+
+
+        const positions = await fetch('https://test3-407023.uc.r.appspot.com/my/vehicle_positions/').then(res => res.json());
+
+        const filteredPositions = positions.filter(pos => {
+          const point = turf.point([pos.longitude, pos.latitude]);
+          return turf.booleanPointInPolygon(point, polygon);
+        });
+
+        // 处理地图源和图层
+        if (map.getSource('vehicle-positions')) {
+          map.getSource('vehicle-positions').setData({
+            type: 'FeatureCollection',
+            features: filteredPositions.map(pos => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [pos.longitude, pos.latitude]
+              }
+            }))
+          });
+        } else {
+          map.addSource('vehicle-positions', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: filteredPositions.map(pos => ({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [pos.longitude, pos.latitude]
+                }
+              }))
+            }
+          });
+          map.addLayer({
+            id: 'vehicles',
+            type: 'circle',
+            source: 'vehicle-positions',
+            paint: {
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                4, 1,
+                8, 2,
+                12, 4,
+                16, 7
+              ],
+              'circle-color': '#007cbf'
+            }
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    // 每分钟请求数据并更新地图
+
+
+
+
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+
+</body>
+
+</html>
